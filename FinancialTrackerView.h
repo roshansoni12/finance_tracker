@@ -31,7 +31,9 @@ protected:
 	CEdit m_DescriptionEntryBox;
 	CEdit m_ValueEntryBox;
 	CButton m_SubmitButton;
-	CEdit m_LargeTextEntryBox;
+	CListCtrl m_EntryList;
+	CButton m_EditButton;
+	CButton m_DeleteButton;
 
 // Implementation
 public:
@@ -50,6 +52,8 @@ protected:
 	afx_msg void OnContextMenu(CWnd* pWnd, CPoint point);
 	afx_msg void OnSubmitButtonClicked();
 	afx_msg void OnInitialUpdate();
+	afx_msg void OnEditButtonClicked();
+	afx_msg void OnDeleteButtonClicked();
 	DECLARE_MESSAGE_MAP()
 };
 

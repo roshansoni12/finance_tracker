@@ -28,6 +28,8 @@ BEGIN_MESSAGE_MAP(CFinancialTrackerView, CView)
     ON_WM_CONTEXTMENU()
     ON_WM_RBUTTONUP()
     ON_BN_CLICKED(IDC_SUBMIT_BTN, &CFinancialTrackerView::OnSubmitButtonClicked)
+    ON_BN_CLICKED(4, &CFinancialTrackerView::OnEditButtonClicked)
+    ON_BN_CLICKED(5, &CFinancialTrackerView::OnDeleteButtonClicked)
 END_MESSAGE_MAP()
 
 // CFinancialTrackerView construction/destruction
@@ -65,8 +67,20 @@ void CFinancialTrackerView::OnInitialUpdate()
     m_SubmitButton.SetDlgCtrlID(IDC_SUBMIT_BTN);
     m_SubmitButton.EnableWindow(TRUE);
 
-    // Create and position the large text entry box
-    m_LargeTextEntryBox.Create(WS_CHILD | WS_VISIBLE | WS_BORDER | ES_MULTILINE | ES_READONLY | WS_VSCROLL, CRect(10, 50, 600, 400), this, 4);
+    // Create and position the edit button
+    m_EditButton.Create(_T("Edit"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, CRect(540, 10, 640, 30), this, 4);
+    m_EditButton.SetFont(GetParent()->GetFont());
+    m_EditButton.EnableWindow(TRUE);
+
+    // Create and position the delete button
+    m_DeleteButton.Create(_T("Delete"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, CRect(650, 10, 750, 30), this, 5);
+    m_DeleteButton.SetFont(GetParent()->GetFont());
+    m_DeleteButton.EnableWindow(TRUE);
+
+    // Create and position the entry list
+    m_EntryList.Create(WS_CHILD | WS_VISIBLE | WS_BORDER | LVS_REPORT, CRect(10, 50, 800, 400), this, 6);
+    m_EntryList.InsertColumn(0, _T("Description"), LVCFMT_LEFT, 350);
+    m_EntryList.InsertColumn(1, _T("Value"), LVCFMT_RIGHT, 100);
 }
 
 // CFinancialTrackerView drawing
@@ -134,17 +148,39 @@ void CFinancialTrackerView::OnSubmitButtonClicked()
     CString value;
     m_ValueEntryBox.GetWindowText(value);
 
-    // Add description and value in tabular form to the large text entry box
-    CString rowData;
-    rowData.Format(_T("%-20s | %10s\r\n"), description, value);
-
-    int length = m_LargeTextEntryBox.GetWindowTextLength();
-    m_LargeTextEntryBox.SetSel(length, length);
-    m_LargeTextEntryBox.ReplaceSel(rowData);
+    // Add a new item to the list control
+    int newIndex = m_EntryList.InsertItem(m_EntryList.GetItemCount(), description);
+    m_EntryList.SetItemText(newIndex, 1, value);
 
     // Clear the description and value entry boxes
     m_DescriptionEntryBox.SetWindowText(_T(""));
     m_ValueEntryBox.SetWindowText(_T(""));
+}
+
+void CFinancialTrackerView::OnEditButtonClicked()
+{
+    int selectedIndex = m_EntryList.GetNextItem(-1, LVNI_SELECTED);
+
+    if (selectedIndex != -1)
+    {
+        CString description = m_EntryList.GetItemText(selectedIndex, 0);
+        CString value = m_EntryList.GetItemText(selectedIndex, 1);
+
+        m_DescriptionEntryBox.SetWindowText(description);
+        m_ValueEntryBox.SetWindowText(value);
+
+        m_EntryList.DeleteItem(selectedIndex);
+    }
+}
+
+void CFinancialTrackerView::OnDeleteButtonClicked()
+{
+    int selectedIndex = m_EntryList.GetNextItem(-1, LVNI_SELECTED);
+
+    if (selectedIndex != -1)
+    {
+        m_EntryList.DeleteItem(selectedIndex);
+    }
 }
 
 // CFinancialTrackerView diagnostics
