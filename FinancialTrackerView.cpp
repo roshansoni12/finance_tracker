@@ -53,17 +53,20 @@ void CFinancialTrackerView::OnInitialUpdate()
 {
     CView::OnInitialUpdate();
 
-    // Create and position the text entry box
-    m_TextEntryBox.Create(WS_CHILD | WS_VISIBLE | WS_BORDER, CRect(10, 10, 210, 30), this, 1);
+    // Create and position the description entry box
+    m_DescriptionEntryBox.Create(WS_CHILD | WS_VISIBLE | WS_BORDER, CRect(10, 10, 310, 30), this, 1);
+
+    // Create and position the value entry box
+    m_ValueEntryBox.Create(WS_CHILD | WS_VISIBLE | WS_BORDER | ES_NUMBER, CRect(320, 10, 420, 30), this, 2);
 
     // Create and position the submit button
-    m_SubmitButton.Create(_T("Submit"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, CRect(220, 10, 320, 30), this, 2);
+    m_SubmitButton.Create(_T("Submit"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, CRect(430, 10, 530, 30), this, 3);
     m_SubmitButton.SetFont(GetParent()->GetFont());
     m_SubmitButton.SetDlgCtrlID(IDC_SUBMIT_BTN);
     m_SubmitButton.EnableWindow(TRUE);
 
     // Create and position the large text entry box
-    m_LargeTextEntryBox.Create(WS_CHILD | WS_VISIBLE | WS_BORDER | ES_MULTILINE | ES_READONLY | WS_VSCROLL, CRect(10, 50, 600, 400), this, 3);
+    m_LargeTextEntryBox.Create(WS_CHILD | WS_VISIBLE | WS_BORDER | ES_MULTILINE | ES_READONLY | WS_VSCROLL, CRect(10, 50, 600, 400), this, 4);
 }
 
 // CFinancialTrackerView drawing
@@ -123,17 +126,25 @@ void CFinancialTrackerView::OnContextMenu(CWnd* /* pWnd */, CPoint point)
 
 void CFinancialTrackerView::OnSubmitButtonClicked()
 {
-    // Get text from the small text entry box
-    CString text;
-    m_TextEntryBox.GetWindowText(text);
+    // Get text from the description entry box
+    CString description;
+    m_DescriptionEntryBox.GetWindowText(description);
 
-    // Add text to the large text entry box
+    // Get value from the value entry box
+    CString value;
+    m_ValueEntryBox.GetWindowText(value);
+
+    // Add description and value in tabular form to the large text entry box
+    CString rowData;
+    rowData.Format(_T("%-20s | %10s\r\n"), description, value);
+
     int length = m_LargeTextEntryBox.GetWindowTextLength();
     m_LargeTextEntryBox.SetSel(length, length);
-    m_LargeTextEntryBox.ReplaceSel(text + _T("\r\n"));
+    m_LargeTextEntryBox.ReplaceSel(rowData);
 
-    // Clear the small text entry box
-    m_TextEntryBox.SetWindowText(_T(""));
+    // Clear the description and value entry boxes
+    m_DescriptionEntryBox.SetWindowText(_T(""));
+    m_ValueEntryBox.SetWindowText(_T(""));
 }
 
 // CFinancialTrackerView diagnostics

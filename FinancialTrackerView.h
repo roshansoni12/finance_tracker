@@ -26,7 +26,10 @@ protected:
 	virtual BOOL OnPreparePrinting(CPrintInfo* pInfo);
 	virtual void OnBeginPrinting(CDC* pDC, CPrintInfo* pInfo);
 	virtual void OnEndPrinting(CDC* pDC, CPrintInfo* pInfo);
-	CEdit m_TextEntryBox;
+	//CEdit m_TextEntryBox; - old, name changed
+	// Controls
+	CEdit m_DescriptionEntryBox;
+	CEdit m_ValueEntryBox;
 	CButton m_SubmitButton;
 	CEdit m_LargeTextEntryBox;
 
