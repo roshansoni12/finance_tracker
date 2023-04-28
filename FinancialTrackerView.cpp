@@ -28,8 +28,12 @@ BEGIN_MESSAGE_MAP(CFinancialTrackerView, CView)
     ON_WM_CONTEXTMENU()
     ON_WM_RBUTTONUP()
     ON_BN_CLICKED(IDC_SUBMIT_BTN, &CFinancialTrackerView::OnSubmitButtonClicked)
-    ON_BN_CLICKED(4, &CFinancialTrackerView::OnEditButtonClicked)
-    ON_BN_CLICKED(5, &CFinancialTrackerView::OnDeleteButtonClicked)
+    ON_NOTIFY(NM_RCLICK, 4, &CFinancialTrackerView::OnTransactionsListRightClick)
+    ON_COMMAND(IDC_EDIT_ITEM, &CFinancialTrackerView::OnEditItem)
+    ON_COMMAND(IDC_DELETE_ITEM, &CFinancialTrackerView::OnDeleteItem)
+    ON_CBN_SELCHANGE(IDC_FILTER_COMBOBOX, &CFinancialTrackerView::OnFilterSelectionChanged)
+    ON_NOTIFY(DTN_DATETIMECHANGE, IDC_START_DATE_PICKER, &CFinancialTrackerView::OnStartDateChanged)
+    ON_NOTIFY(DTN_DATETIMECHANGE, IDC_END_DATE_PICKER, &CFinancialTrackerView::OnEndDateChanged)
 END_MESSAGE_MAP()
 
 // CFinancialTrackerView construction/destruction
@@ -67,20 +71,30 @@ void CFinancialTrackerView::OnInitialUpdate()
     m_SubmitButton.SetDlgCtrlID(IDC_SUBMIT_BTN);
     m_SubmitButton.EnableWindow(TRUE);
 
-    // Create and position the edit button
-    m_EditButton.Create(_T("Edit"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, CRect(540, 10, 640, 30), this, 4);
-    m_EditButton.SetFont(GetParent()->GetFont());
-    m_EditButton.EnableWindow(TRUE);
+    // Create and position the transactions list control
+    m_TransactionsListCtrl.Create(WS_CHILD | WS_VISIBLE | WS_BORDER | LVS_REPORT, CRect(10, 50, 600, 400), this, 4);
+    m_TransactionsListCtrl.SetExtendedStyle(LVS_EX_GRIDLINES | LVS_EX_FULLROWSELECT);
+    m_TransactionsListCtrl.InsertColumn(0, _T("Date"), LVCFMT_LEFT, 100);
+    m_TransactionsListCtrl.InsertColumn(1, _T("Amount"), LVCFMT_RIGHT, 100);
+    m_TransactionsListCtrl.InsertColumn(2, _T("Description"), LVCFMT_LEFT, 390);
 
-    // Create and position the delete button
-    m_DeleteButton.Create(_T("Delete"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, CRect(650, 10, 750, 30), this, 5);
-    m_DeleteButton.SetFont(GetParent()->GetFont());
-    m_DeleteButton.EnableWindow(TRUE);
+    // Create and position the filter combo box
+    m_FilterComboBox.Create(WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST, CRect(10, 410, 210, 430), this, IDC_FILTER_COMBOBOX);
+    m_FilterComboBox.AddString(_T("All Transactions"));
+    m_FilterComboBox.AddString(_T("Today"));
+    m_FilterComboBox.AddString(_T("This Week"));
+    m_FilterComboBox.AddString(_T("This Month"));
+    m_FilterComboBox.AddString(_T("This Year"));
+    m_FilterComboBox.AddString(_T("Custom Range"));
+    m_FilterComboBox.SetCurSel(0);
 
-    // Create and position the entry list
-    m_EntryList.Create(WS_CHILD | WS_VISIBLE | WS_BORDER | LVS_REPORT, CRect(10, 50, 800, 400), this, 6);
-    m_EntryList.InsertColumn(0, _T("Description"), LVCFMT_LEFT, 350);
-    m_EntryList.InsertColumn(1, _T("Value"), LVCFMT_RIGHT, 100);
+    // Create and position the start date picker
+    m_StartDatePicker.Create(WS_CHILD | WS_VISIBLE | DTS_SHORTDATEFORMAT, CRect(220, 410, 330, 430), this, IDC_START_DATE_PICKER);
+    m_StartDatePicker.EnableWindow(FALSE);
+
+    // Create and position the end date picker
+    m_EndDatePicker.Create(WS_CHILD | WS_VISIBLE | DTS_SHORTDATEFORMAT, CRect(340, 410, 450, 430), this, IDC_END_DATE_PICKER);
+    m_EndDatePicker.EnableWindow(FALSE);
 }
 
 // CFinancialTrackerView drawing
@@ -148,38 +162,169 @@ void CFinancialTrackerView::OnSubmitButtonClicked()
     CString value;
     m_ValueEntryBox.GetWindowText(value);
 
-    // Add a new item to the list control
-    int newIndex = m_EntryList.InsertItem(m_EntryList.GetItemCount(), description);
-    m_EntryList.SetItemText(newIndex, 1, value);
+    // Get the current date
+    CTime currentTime = CTime::GetCurrentTime();
+    CString date = currentTime.Format(_T("%Y-%m-%d"));
+
+    // Add the new transaction to the transactions list control
+    int newRow = m_TransactionsListCtrl.GetItemCount();
+    m_TransactionsListCtrl.InsertItem(newRow, date);
+    m_TransactionsListCtrl.SetItemText(newRow, 1, value);
+    m_TransactionsListCtrl.SetItemText(newRow, 2, description);
 
     // Clear the description and value entry boxes
     m_DescriptionEntryBox.SetWindowText(_T(""));
     m_ValueEntryBox.SetWindowText(_T(""));
 }
 
-void CFinancialTrackerView::OnEditButtonClicked()
+
+void CFinancialTrackerView::OnTransactionsListRightClick(NMHDR* pNMHDR, LRESULT* pResult)
 {
-    int selectedIndex = m_EntryList.GetNextItem(-1, LVNI_SELECTED);
+    LPNMITEMACTIVATE pNMIA = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
 
-    if (selectedIndex != -1)
+    if (pNMIA->iItem != -1)
     {
-        CString description = m_EntryList.GetItemText(selectedIndex, 0);
-        CString value = m_EntryList.GetItemText(selectedIndex, 1);
+        CMenu contextMenu;
+        contextMenu.CreatePopupMenu();
+        contextMenu.AppendMenu(MF_STRING, IDC_EDIT_ITEM, _T("Edit"));
+        contextMenu.AppendMenu(MF_STRING, IDC_DELETE_ITEM, _T("Delete"));
 
+        CPoint cursorPosition;
+        GetCursorPos(&cursorPosition);
+
+        contextMenu.TrackPopupMenu(TPM_LEFTALIGN, cursorPosition.x, cursorPosition.y, this);
+    }
+
+    *pResult = 0;
+}
+
+void CFinancialTrackerView::OnEditItem()
+{
+    int selectedItem = m_TransactionsListCtrl.GetNextItem(-1, LVNI_SELECTED);
+    if (selectedItem != -1)
+    {
+        CString amount = m_TransactionsListCtrl.GetItemText(selectedItem, 1);
+        CString description = m_TransactionsListCtrl.GetItemText(selectedItem, 2);
+
+        m_ValueEntryBox.SetWindowText(amount);
         m_DescriptionEntryBox.SetWindowText(description);
-        m_ValueEntryBox.SetWindowText(value);
 
-        m_EntryList.DeleteItem(selectedIndex);
+        // Delete the selected item so that it can be replaced by an updated one
+        m_TransactionsListCtrl.DeleteItem(selectedItem);
     }
 }
 
-void CFinancialTrackerView::OnDeleteButtonClicked()
+void CFinancialTrackerView::OnDeleteItem()
 {
-    int selectedIndex = m_EntryList.GetNextItem(-1, LVNI_SELECTED);
-
-    if (selectedIndex != -1)
+    int selectedItem = m_TransactionsListCtrl.GetNextItem(-1, LVNI_SELECTED);
+    if (selectedItem != -1)
     {
-        m_EntryList.DeleteItem(selectedIndex);
+        m_TransactionsListCtrl.DeleteItem(selectedItem);
+    }
+}
+
+void CFinancialTrackerView::OnFilterSelectionChanged()
+{
+    int filterIndex = m_FilterComboBox.GetCurSel();
+    bool isCustomRange = (filterIndex == 5);
+
+    m_StartDatePicker.EnableWindow(isCustomRange);
+    m_EndDatePicker.EnableWindow(isCustomRange);
+
+    ApplyFilter();
+}
+
+void CFinancialTrackerView::OnStartDateChanged(NMHDR* /*pNMHDR*/, LRESULT* pResult)
+{
+    ApplyFilter();
+    *pResult = 0;
+}
+
+void CFinancialTrackerView::OnEndDateChanged(NMHDR* /*pNMHDR*/, LRESULT* pResult)
+{
+    ApplyFilter();
+    *pResult = 0;
+}
+
+int GetDaysInMonth(int year, int month)
+{
+    int daysInMonth[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+
+    // Check for leap year
+    if (month == 2 && ((year % 4 == 0 && year % 100 != 0) || year % 400 == 0))
+    {
+        return 29;
+    }
+
+    return daysInMonth[month - 1];
+}
+
+void CFinancialTrackerView::ApplyFilter()
+{
+    int filterIndex = m_FilterComboBox.GetCurSel();
+    COleDateTime currentDate = COleDateTime::GetCurrentTime();
+    COleDateTime startDate, endDate;
+    int daysInMonth;
+
+    switch (filterIndex)
+    {
+    case 0: // All Transactions
+        ShowAllTransactions();
+        break;
+    case 1: // Today
+        startDate = currentDate;
+        endDate = currentDate;
+        break;
+    case 2: // This Week
+        startDate = currentDate - COleDateTimeSpan(static_cast<int>(currentDate.GetDayOfWeek()) - 1, 0, 0, 0);
+        endDate = startDate + COleDateTimeSpan(6, 23, 59, 59);
+        break;
+    case 3: // This Month
+        startDate = COleDateTime(currentDate.GetYear(), currentDate.GetMonth(), 1, 0, 0, 0);
+        daysInMonth = GetDaysInMonth(startDate.GetYear(), startDate.GetMonth());
+        endDate = COleDateTime(currentDate.GetYear(), currentDate.GetMonth(), daysInMonth, 23, 59, 59);
+        break;
+    case 4: // This Year
+        startDate = COleDateTime(currentDate.GetYear(), 1, 1, 0, 0, 0);
+        endDate = COleDateTime(currentDate.GetYear(), 12, 31, 23, 59, 59);
+        break;
+    case 5: // Custom Range
+        m_StartDatePicker.GetTime(startDate);
+        m_EndDatePicker.GetTime(endDate);
+        break;
+    }
+
+    if (filterIndex > 0 && filterIndex < 6)
+    {
+        ShowTransactionsInRange(startDate, endDate);
+    }
+}
+
+
+void CFinancialTrackerView::ShowAllTransactions()
+{
+    for (int i = 0; i < m_TransactionsListCtrl.GetItemCount(); ++i)
+    {
+        m_TransactionsListCtrl.SetItemState(i, LVIS_CUT, LVIS_CUT);
+    }
+}
+
+void CFinancialTrackerView::ShowTransactionsInRange(const COleDateTime& startDate, const COleDateTime& endDate)
+{
+    for (int i = 0; i < m_TransactionsListCtrl.GetItemCount(); ++i)
+    {
+        CString dateStr = m_TransactionsListCtrl.GetItemText(i, 0);
+        COleDateTime date;
+        date.ParseDateTime(dateStr);
+
+        if (date >= startDate && date <= endDate)
+        {
+            m_TransactionsListCtrl.SetItemState(i, LVIS_CUT, LVIS_CUT);
+        }
+        else
+        {
+            m_TransactionsListCtrl.SetItemState(i, 0, LVIS_CUT);
+        }
     }
 }
 
@@ -204,4 +349,3 @@ CFinancialTrackerDoc* CFinancialTrackerView::GetDocument() const // non-debug ve
 #endif //_DEBUG
 
 // CFinancialTrackerView message handlers
-

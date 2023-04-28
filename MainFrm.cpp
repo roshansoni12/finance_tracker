@@ -1,7 +1,7 @@
 
 // MainFrm.cpp : implementation of the CMainFrame class
 //
-
+#define _AFX_DEBUG 1
 #include "pch.h"
 #include "framework.h"
 #include "FinancialTracker.h"
