@@ -40,7 +40,7 @@ END_MESSAGE_MAP()
 
 CFinancialTrackerView::CFinancialTrackerView() noexcept
 {
-    // TODO: add construction code here
+    // Final Version
 }
 
 CFinancialTrackerView::~CFinancialTrackerView()
@@ -49,8 +49,7 @@ CFinancialTrackerView::~CFinancialTrackerView()
 
 BOOL CFinancialTrackerView::PreCreateWindow(CREATESTRUCT& cs)
 {
-    // TODO: Modify the Window class or styles here by modifying
-    //  the CREATESTRUCT cs
+    //  Final Version
 
     return CView::PreCreateWindow(cs);
 }
@@ -106,7 +105,7 @@ void CFinancialTrackerView::OnDraw(CDC* /*pDC*/)
     if (!pDoc)
         return;
 
-    // TODO: add draw code for native data here
+    //  Final Version
 }
 
 // CFinancialTrackerView printing
@@ -131,12 +130,12 @@ BOOL CFinancialTrackerView::OnPreparePrinting(CPrintInfo* pInfo)
 
 void CFinancialTrackerView::OnBeginPrinting(CDC* /*pDC*/, CPrintInfo* /*pInfo*/)
 {
-    // TODO: add extra initialization before printing
+    //  Final Version
 }
 
 void CFinancialTrackerView::OnEndPrinting(CDC* /*pDC*/, CPrintInfo* /*pInfo*/)
 {
-    // TODO: add cleanup after printing
+    //  Final Version
 }
 
 void CFinancialTrackerView::OnRButtonUp(UINT /* nFlags */, CPoint point)
